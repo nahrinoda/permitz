@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { ArrowsUpDown } from "../design/icons/ArrowsUpDown";
 import { DatePicker } from "../design/DatePicker";
 import { Header } from "../design/Header";
@@ -10,6 +11,17 @@ import { SortOrder } from "./types";
  *
  * Refer to the README for requirements for your final product.  */
 export function Forecast() {
+  const [kickoffDate, setKickoffDate] = useState(new Date());
+  const [forecastData, setForecastData] = useState([]);
+  const [sortOrder, setSortOrder] = useState(SortOrder.Submit);
+
+  useEffect(() => {
+    // Recalculate forecast data whenever kickoffDate or sortOrder changes
+    const sortedData = getPermitForecast(permitData, kickoffDate);
+    // Apply sorting based on sortOrder
+    setForecastData(sortedData); // Apply sorting here
+  }, [kickoffDate, sortOrder]);
+
   return (
     <div className="flex flex-col flex-1 h-screen">
       <div className="flex flex-col border-b bg-white">
@@ -38,8 +50,8 @@ function ProjectKickoffInput() {
           Set your project kick off date
         </div>
         <DatePicker
-          value={new Date()}
-          onChange={(value) => {          }}
+          value={kickoffDate}
+          onChange={(value) => onDateChange(value)}
         />
       </div>
     </div>
@@ -57,26 +69,19 @@ function ProjectApprovalCallout({ approvalDate }: { approvalDate: Date }) {
   );
 }
 
-function PermitTable() {
+function PermitTable({ permits }) {
   return (
     <div className="flex flex-col space-y-6">
       <div className="flex flex-row justify-between items-end">
         <div className="text-2xl font-semibold">Your Permits</div>
         <div className="flex flex-row space-x-4 items-center">
           <ArrowsUpDown className="w-4 h-4" />
-          {/* TODO - make the switcher change the sort order of the permit table */}
           <Switcher
-            value={SortOrder.Submit}
-            onChange={(value) => console.log(`Sort order changed to ${value}`)}
+            value={sortOrder}
+            onChange={(value) => setSortOrder(value)}
             options={[
-              {
-                value: SortOrder.Submit,
-                label: SortOrder.Submit,
-              },
-              {
-                value: SortOrder.Approval,
-                label: SortOrder.Approval,
-              },
+              { value: SortOrder.Submit, label: SortOrder.Submit },
+              { value: SortOrder.Approval, label: SortOrder.Approval },
             ]}
           />
         </div>
@@ -88,13 +93,15 @@ function PermitTable() {
             Forecasted Submit Date - Earliest Approval Date
           </div>
         </div>
-        <div className="grid grid-cols-3 p-4 items-centertext-md">
-          <div className="font-semibold col-span-1">Sample Permit</div>
-          <div className="col-span-2 flex justify-center">
-            {new Date("12-10-2022").toLocaleDateString("en-US")} -{" "}
-            {new Date("01-20-2023").toLocaleDateString("en-US")}
+        {permits.map(permit => (
+          <div className="grid grid-cols-3 p-4 items-centertext-md">
+            <div className="font-semibold col-span-1">Sample Permit</div>
+            <div className="col-span-2 flex justify-center">
+              {new Date("12-10-2022").toLocaleDateString("en-US")} -{" "}
+              {new Date("01-20-2023").toLocaleDateString("en-US")}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
