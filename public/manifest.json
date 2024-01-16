@@ -1,0 +1,7 @@
+{
+  "short_name": "Pulley Forecast",
+  "name": "Pulley Forecast",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff"
+}
