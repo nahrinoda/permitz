@@ -5,24 +5,54 @@ import dayjs from 'dayjs';
 export function getPermitForecast(permits: PermitRecord[], kickoff: Date): PermitRecord[] {
   let approvalDates = new Map<string, Date>();
 
-  // Sort permits by dependency order
-  let sortedPermits = sortPermitsByDependencies(permits);
-
-  sortedPermits.forEach(permit => {
-    let submitDate = kickoff;
-    if (permit.dependencyIds.length > 0) {
-      // Find the latest approval date among dependencies
-      submitDate = permit.dependencyIds.reduce((latest, id) => {
-        let depApprovalDate = approvalDates.get(id);
-        return depApprovalDate > latest ? depApprovalDate : latest;
-      }, kickoff);
+  // Function to sort permits based on dependencies
+  function sortPermitsByDependencies(permits: PermitRecord[]): PermitRecord[] {
+    // A helper function to check if all dependencies are resolved
+    function areDependenciesResolved(permit: PermitRecord, resolvedIds: string[]): boolean {
+      return permit.dependencyIds.every(id => resolvedIds.includes(id));
     }
 
-    let approvalDate = dayjs(submitDate).add(permit.estimatedDuration, 'day').toDate();
+    let sortedPermits: PermitRecord[] = [];
+    let resolvedIds: string[] = [];
+
+    while (sortedPermits.length < permits.length) {
+      for (let permit of permits) {
+        if (!resolvedIds.includes(permit.id) && areDependenciesResolved(permit, resolvedIds)) {
+          sortedPermits.push(permit);
+          resolvedIds.push(permit.id);
+        }
+      }
+    }
+
+    return sortedPermits;
+  }
+
+  let sortedPermits = sortPermitsByDependencies(permits);
+  sortedPermits.forEach((permit: PermitRecord) => {
+    let latestApprovalDate = new Date(kickoff.getTime()); // Set to kickoff date for comparison
+    permit.dependencyIds.forEach((depId: string) => {
+      const depApprovalDate = approvalDates.get(depId);
+      if (depApprovalDate && depApprovalDate > latestApprovalDate) {
+        latestApprovalDate = depApprovalDate;
+      }
+    });
+
+    // Calculate the submit date
+    let submitDate = latestApprovalDate;
+    if (permit.dependencyIds.length === 0 || latestApprovalDate <= kickoff) {
+      submitDate = new Date(kickoff.getTime());
+    } else {
+      submitDate.setDate(submitDate.getDate());
+    }
+
+    // Calculate the approval date based on the submit date and the estimated duration
+    let approvalDate = new Date(submitDate.getTime());
+    approvalDate.setDate(submitDate.getDate() + permit.estimatedDuration);
+
     approvalDates.set(permit.id, approvalDate);
 
-    permit.submitDate = submitDate;  // Adding new property to permit
-    permit.approvalDate = approvalDate;  // Adding new property to permit
+    permit.submitDate = submitDate;
+    permit.approvalDate = approvalDate;
   });
 
   return sortedPermits;
